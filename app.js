@@ -26,11 +26,18 @@ const finishBtn = document.getElementById('finish-btn');
 const recBox = document.getElementById('recommendations-box');
 const recList = document.getElementById('recommendations-list');
 
-function productIcon(name) {
-  const n=name.toLowerCase();
-  const groups=[[/молок|кефир|сливк/,'🥛'],[/хлеб|батон|булк/,'🍞'],[/яйц/,'🥚'],[/сыр/,'🧀'],[/яблок/,'🍎'],[/банан/,'🍌'],[/авокад/,'🥑'],[/клубник|ягод/,'🍓'],[/томат|помидор/,'🍅'],[/огур/,'🥒'],[/карто/,'🥔'],[/морков/,'🥕'],[/куриц|мяс|фарш/,'🥩'],[/рыб|лосос/,'🐟'],[/кофе|чай/,'☕'],[/вод|сок/,'🧃'],[/шоколад|конфет/,'🍫'],[/макарон/,'🍝'],[/мыл|шампун/,'🧴']];
-  return groups.find(([r])=>r.test(n))?.[1] || '🛍️';
-}
+const groups=[
+['Соусы',/майонез|сметанн.*соус|горчиц/,'🥣'],['Соусы',/кетчуп|томатн.*паст/,'🍅'],['Соусы',/соус|уксус/,'🫙'],['Выпечка',/тест[оа]|слоен|круассан/,'🥐'],['Мясо',/колбас|сосиск|сардель|ветчин/,'🌭'],['Молочные',/молок|кефир|сливк|йогурт/,'🥛'],['Молочные',/сыр|творог/,'🧀'],['Молочные',/сметан|масло слив/,'🧈'],['Выпечка',/хлеб|батон|булк|лаваш/,'🍞'],['Молочные',/яйц/,'🥚'],['Фрукты',/яблок/,'🍎'],['Фрукты',/банан/,'🍌'],['Фрукты',/апельсин|мандарин/,'🍊'],['Фрукты',/лимон/,'🍋'],['Фрукты',/виноград/,'🍇'],['Фрукты',/клубник|ягод/,'🍓'],['Фрукты',/груш/,'🍐'],['Овощи',/авокад/,'🥑'],['Овощи',/томат|помидор/,'🍅'],['Овощи',/огур/,'🥒'],['Овощи',/карто/,'🥔'],['Овощи',/морков/,'🥕'],['Овощи',/лук/,'🧅'],['Овощи',/чеснок/,'🧄'],['Овощи',/капуст|салат|зелень/,'🥬'],['Овощи',/перец/,'🫑'],['Мясо',/куриц|индей/,'🍗'],['Мясо',/мяс|фарш|говя|свинин/,'🥩'],['Рыба',/рыб|лосос|селед|тунец/,'🐟'],['Рыба',/кревет/,'🍤'],['Бакалея',/рис|греч|круп|овсян/,'🌾'],['Бакалея',/макарон|спагет/,'🍝'],['Бакалея',/мук|сахар|соль/,'🧂'],['Напитки',/кофе|чай/,'☕'],['Напитки',/вод[ауы]|сок|лимонад/,'🧃'],['Сладости',/шоколад|конфет/,'🍫'],['Сладости',/печень|торт/,'🍪'],['Дом',/мыл|шампун|гель/,'🧴'],['Дом',/бумаг|салфет/,'🧻'],['Дом',/порошок|губк|чистящ/,'🧽'],['Аптека',/таблет|витамин|лекарств/,'💊']];
+const classify=name=>groups.find(g=>g[1].test(name.toLowerCase().replaceAll('ё','е'))) || ['Прочее',null,'📦'];
+const productIcon=name=>classify(name)[2];
+let allItems=[], activeList='Продукты', page='Покупки', prefs={}, undoItem=null, metaReady=false;
+const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('ru-RU')+' ₽', cost=i=>Number(i.price||0), listOf=i=>i.list||'Продукты';
+const meta=()=>doc(col('items'),'__premium_settings__');
+function savePref(key,value){if(!ready||!metaReady)return;setDoc(meta(),{[key]:value},{merge:true}).catch(report);}
+function refresh(){items=allItems.filter(i=>listOf(i)===activeList);render();updateRecommendations();if(page!=='Покупки')renderPage();}
+function node(tag,text,cls){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e;}
+function btn(text,fn){const b=node('button',text);b.type='button';b.onclick=fn;return b;}
+function editItem(i){const name=prompt('Название',i.name);if(!name?.trim())return;const qty=prompt('Количество / вес',i.qty||'');if(qty===null)return;const price=prompt('Стоимость всего товара, ₽',i.price??'');if(price===null)return;const note=prompt('Комментарий',i.note||'');if(note===null)return;const icon=prompt('Иконка (эмодзи, пусто — автоматически)',i.icon||'');if(icon===null)return;const n=Number(price.replace(',','.'));if(!Number.isFinite(n)||n<0){alert('Введите корректную цену');return;}updateDoc(itemDoc(i.id),{name:name.trim(),qty,price:n,note,icon}).catch(report);}
 function celebrate(){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const layer=document.createElement('div');layer.className='confetti';layer.setAttribute('aria-hidden','true');
@@ -46,6 +53,7 @@ function render() {
   document.getElementById('remaining').textContent=`Осталось: ${items.length-bought}`;
 
   listEl.innerHTML = '';
+  const total=items.reduce((s,i)=>s+cost(i),0), budget=Number(prefs["budget_"+activeList]||0); $("total").textContent="Корзина: "+money(total)+" · куплено "+money(items.filter(i=>i.bought).reduce((s,i)=>s+cost(i),0))+(budget?" · "+(total>budget?"Сверх бюджета: ":"Остаток: ")+money(Math.abs(budget-total)):"");
 
   // Показываем/скрываем кнопку завершения и текст "пусто"
   if (items.length === 0) {
@@ -56,7 +64,9 @@ function render() {
     finishBtn.classList.remove('hidden');
   }
 
-  items.forEach(item => {
+  let lastCategory="";
+  [...items].sort((a,b)=>classify(a.name)[0].localeCompare(classify(b.name)[0],"ru")||Number(a.bought)-Number(b.bought)).forEach(item => {
+    const category=classify(item.name)[0];if(category!==lastCategory){listEl.append(node("li",category,"category"));lastCategory=category;}
     const li = document.createElement('li');
     li.className = 'list-item' + (item.bought ? ' bought' : '');
 
@@ -76,9 +86,9 @@ function render() {
     delBtn.title = 'Удалить';
     delBtn.addEventListener('click', () => deleteItem(item.id));
 
-    const icon=document.createElement('span');icon.className='product-icon';icon.textContent=productIcon(item.name);icon.setAttribute('aria-hidden','true');
+    const icon=document.createElement('span');icon.className='product-icon';icon.textContent=item.icon||productIcon(item.name);icon.setAttribute('aria-hidden','true');
     const details=document.createElement('div');details.className='item-details';details.append(span);
-    const note=document.createElement('small');note.textContent=item.bought?'В корзине':'Нужно купить';details.append(note);
+    const note=document.createElement('small');note.textContent=[item.qty,item.note,item.price?money(item.price):'',item.bought?'В корзине':''].filter(Boolean).join(' · ')||'Нужно купить';details.onclick=()=>editItem(item);details.tabIndex=0;details.onkeydown=e=>{if(e.key==='Enter')editItem(item)};details.append(note);
     li.append(icon,details,checkbox);
     li.appendChild(delBtn);
     listEl.appendChild(li);
@@ -91,11 +101,11 @@ function updateRecommendations() {
     return;
   }
 
-  const counts = Object.create(null);
+  const counts = Object.create(null), dates = Object.create(null);
   history.forEach(list => {
-    list.items.forEach(item => {
+    (list.items||[]).filter(i=>i.bought).forEach(item => {
       const name = item.name.toLowerCase();
-      counts[name] = (counts[name] || 0) + 1;
+      counts[name] = (counts[name] || 0) + 1; (dates[name] ||= []).push(Date.parse(list.date));
     });
   });
 
@@ -114,7 +124,7 @@ function updateRecommendations() {
       const chip = document.createElement('button');
       chip.type='button';
       chip.className = 'rec-chip';
-      chip.textContent = item.name.charAt(0).toUpperCase() + item.name.slice(1);
+      chip.textContent = productIcon(item.name)+" "+item.name.charAt(0).toUpperCase() + item.name.slice(1); const ds=dates[item.name].filter(Number.isFinite).sort((a,b)=>a-b); if(ds.length>1){const avg=(ds.at(-1)-ds[0])/(ds.length-1);if(avg>0&&Date.now()-ds.at(-1)>=avg)chip.textContent+=" · пора?";}
       
       chip.addEventListener('click', () => {
         const exists = items.some(i => i.name.toLowerCase() === item.name);
@@ -134,19 +144,21 @@ function updateRecommendations() {
 function addItem(name) {
   name = name.trim(); if (!ready || !name) return;
   const ref = doc(col('items'));
-  setDoc(ref, {name, bought:false, createdAt:Date.now()}).catch(report);
+  setDoc(ref, {name, bought:false, createdAt:Date.now(),list:activeList}).catch(report);
 }
 function toggleBought(id) {
   const item = items.find(i => i.id === id);
   if (ready && item) updateDoc(itemDoc(id), {bought:!item.bought}).catch(report);
 }
-function deleteItem(id) { if (ready) deleteDoc(itemDoc(id)).catch(report); }
+function deleteItem(id) { if (ready) {undoItem=items.find(i=>i.id===id);$("undo").classList.remove("hidden");deleteDoc(itemDoc(id)).catch(report);} }
 function finishShopping() {
   if (!ready || !items.length) return;
+  if(items.some(i=>!i.bought)&&!confirm("Завершить только купленные товары? Остальные останутся в списке."))return;
+  const purchased=items.filter(i=>i.bought);if(!purchased.length)return;
   if (items.length > 499) { say('Слишком много товаров для завершения за один раз.'); return; }
   const batch = writeBatch(db);
-  batch.set(doc(col('history')), {date:new Date().toISOString(), items:items.map(({id,name,bought})=>({id,name,bought}))});
-  items.forEach(i=>batch.delete(itemDoc(i.id)));
+  batch.set(doc(col('history')), {date:new Date().toISOString(), items:purchased.map(i=>({...i}))});
+  purchased.forEach(i=>batch.delete(itemDoc(i.id)));
   batch.commit().then(celebrate).catch(report);
 }
 form.addEventListener('submit', e=>{e.preventDefault(); addItem(input.value); input.value=''; input.focus();});
@@ -158,14 +170,28 @@ login.addEventListener('submit', async e=>{
   finally {button.disabled=false;}
 });
 onAuthStateChanged(auth,user=>{
-  unsub.forEach(fn=>fn()); unsub=[]; ready=false; items=[]; history=[];
+  unsub.forEach(fn=>fn()); unsub=[]; ready=false; items=[]; allItems=[]; history=[]; prefs={};metaReady=false;
   login.classList.toggle('hidden',!!user); content.classList.toggle('hidden',!user);
   if(!user){say('Войдите один раз на этом устройстве.');return;}
   uid=user.uid; say('Загрузка списка…'); render(); updateRecommendations();
   unsub.push(onSnapshot(col('items'),{includeMetadataChanges:true},snap=>{
-    items=snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>a.createdAt-b.createdAt); ready=true;
-    say(snap.metadata.hasPendingWrites?'Ожидает синхронизации…':snap.metadata.fromCache?'Локальная копия · ожидаем связь':'Список синхронизирован'); render(); updateRecommendations();
+    allItems=snap.docs.filter(d=>d.id!=="__premium_settings__").map(d=>({...d.data(),id:d.id})).sort((a,b)=>a.createdAt-b.createdAt);prefs=snap.docs.find(d=>d.id==="__premium_settings__")?.data()||{};metaReady=true;ready=true;applyPrefs();
+    say(snap.metadata.hasPendingWrites?'Ожидает синхронизации…':snap.metadata.fromCache?'Локальная копия · ожидаем связь':'Список синхронизирован'); refresh();
   },report));
-  unsub.push(onSnapshot(col('history'),snap=>{history=snap.docs.map(d=>d.data());updateRecommendations();},report));
+  unsub.push(onSnapshot(col('history'),snap=>{history=snap.docs.map(d=>d.data());updateRecommendations();if(page!=="Покупки")renderPage();},report));
 });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
+
+function applyPrefs(){document.documentElement.style.setProperty('--accent',prefs.accent||'#c5f76b');if(document.activeElement!==$('budget'))$('budget').value=prefs['budget_'+activeList]||'';}
+$('budget').onchange=e=>savePref('budget_'+activeList,Math.max(0,Number(e.target.value)||0));
+$('list-select').onchange=e=>{activeList=e.target.value;applyPrefs();refresh();};
+$('undo').onclick=()=>{if(undoItem&&ready){const {id,...data}=undoItem;setDoc(itemDoc(id),data).catch(report);undoItem=null;$('undo').classList.add('hidden');}};
+const pages=['Покупки','Запасы','Рецепты','Расходы','Настройки'];
+function navigate(p){page=p;$('shopping-panel').classList.toggle('hidden',p!=='Покупки');$('other-panel').classList.toggle('hidden',p==='Покупки');[...$('tabs').children].forEach(b=>b.classList.toggle('active',b.textContent===p));if(p!=='Покупки')renderPage();}
+pages.forEach(p=>$('tabs').append(btn(p,()=>navigate(p))));navigate('Покупки');
+function renderPage(){const root=$('other-panel');root.replaceChildren(node('h1',page));const card=(title,detail,actions=[])=>{const c=node('div','','extra-card');c.append(node('h3',title),node('p',detail));actions.forEach(b=>c.append(b));root.append(c);};
+if(page==='Запасы'){const stock=prefs.stock||[];root.append(btn('+ Добавить запас',()=>{const name=prompt('Продукт');if(!name?.trim())return;const qty=prompt('Количество','1');if(qty!==null)savePref('stock',[...stock,{name,qty,id:crypto.randomUUID()}]);}));stock.forEach(i=>card(productIcon(i.name)+' '+i.name,i.qty,[btn('В покупки',()=>addItem(i.name)),btn('Изменить',()=>{const q=prompt('Количество',i.qty);if(q!==null)savePref('stock',stock.map(x=>x.id===i.id?{...x,qty:q}:x));}),btn('Удалить',()=>savePref('stock',stock.filter(x=>x.id!==i.id)))]));}
+if(page==='Рецепты'){const recipes=[{name:'Паста с томатами',ingredients:['Макароны','Помидоры','Чеснок','Сыр']},{name:'Омлет',ingredients:['Яйца','Молоко','Сыр']},{name:'Салат',ingredients:['Огурцы','Помидоры','Салат','Масло']},...(prefs.recipes||[])];root.append(btn('+ Свой рецепт',()=>{const name=prompt('Название');if(!name?.trim())return;const s=prompt('Ингредиенты через запятую');if(s?.trim())savePref('recipes',[...(prefs.recipes||[]),{name,ingredients:s.split(',').map(x=>x.trim()).filter(Boolean)}]);}));recipes.forEach(r=>card(r.name,r.ingredients.join(' · '),[btn('Добавить ингредиенты',()=>r.ingredients.forEach(addItem))]));}
+if(page==='Расходы'){const sorted=[...history].sort((a,b)=>String(b.date).localeCompare(String(a.date)));for(const [label,days] of [['Неделя',7],['Месяц',30],['Год',365]]){const rows=sorted.filter(h=>Date.parse(h.date)>=Date.now()-days*86400000);card(label,money(rows.reduce((s,h)=>s+(h.items||[]).filter(i=>i.bought).reduce((v,i)=>v+cost(i),0),0)));}root.append(node('h2','История покупок'));sorted.forEach(h=>card(new Date(h.date).toLocaleDateString('ru-RU'),(h.items||[]).map(i=>i.name).join(', '),[btn('Повторить список',()=>{(h.items||[]).forEach(i=>addItem(i.name));navigate('Покупки');})]));root.append(node('p','Старые покупки без цен не учитываются в сумме.'));}
+if(page==='Настройки'){card('Акцентный цвет','Выберите оформление',['#c5f76b','#82d9ff','#f8a8df','#ffc477'].map(c=>{const b=btn(c,()=>savePref('accent',c));b.style.background=c;b.style.color='#111';return b;}));const fav=prefs.favorites||[];card('Избранное','Быстрое добавление',[btn('+ Добавить любимый товар',()=>{const n=prompt('Название');if(n?.trim())savePref('favorites',[...new Set([...fav,n.trim()])]);})]);fav.forEach(n=>card(productIcon(n)+' '+n,'',[btn('В покупки',()=>addItem(n)),btn('Удалить',()=>savePref('favorites',fav.filter(x=>x!==n)))]));card('Напоминания','Работают, пока приложение открыто.',[btn('Установить напоминание',()=>{const n=Number(prompt('Через сколько минут напомнить?','30'));if(n>0&&n<=1440)setTimeout(()=>alert('Пора проверить список покупок!'),n*60000);})]);card('Чеки','Вставьте распознанный текст чека вручную (например, из функции Live Text на iPhone).',[btn('Импорт текста',()=>{const t=prompt('Товары: каждый с новой строки или через запятую');if(t)t.split(/[,\n]/).map(x=>x.trim()).filter(Boolean).forEach(addItem);})]);}}
+$('voice').onclick=()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){alert('Голосовой ввод недоступен. Используйте микрофон клавиатуры.');return;}try{const r=new R();r.lang='ru-RU';r.onresult=e=>e.results[0][0].transcript.split(/[,;]/).forEach(addItem);r.onerror=()=>alert('Не удалось распознать голос.');r.start();}catch(e){alert('Голосовой ввод недоступен.');}};
