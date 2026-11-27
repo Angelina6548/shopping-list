@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111510">
   <title>Мой список покупок</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.webmanifest">
@@ -10,6 +11,7 @@
 </head>
 <body>
   <div class="app">
+<header class="brand"><span class="brand-icon">✳</span><span>МОИ ПОКУПКИ<small> SMART SHOPPING</small></span></header>
     <form id="login" class="login-form">
       <h2>Вход в общий список</h2>
       <input id="email" type="email" placeholder="Электронная почта" autocomplete="username" required>
@@ -18,27 +20,28 @@
     </form>
     <p id="status" role="status">Подключение…</p>
     <section id="content" class="hidden">
-    <h1>🛒 Список покупок</h1>
+    <h1>За покупками<span>.</span></h1><p class="subtitle">Всё нужное в одном месте.</p>
+<div class="progress-card"><div><small>ТВОЙ ПРОГРЕСС</small><strong id="progress-count">0 из 0</strong><span>Продуктов в корзине</span></div><div class="ring" id="progress-ring"><b id="progress-percent">0%</b></div><div class="track"><div id="progress-bar"></div></div></div>
 
     <!-- Блок рекомендаций -->
     <div id="recommendations-box" class="recommendations-box hidden">
-      <h3>💡 Вам может понадобиться:</h3>
+      <h3>✦ Часто покупаете</h3>
       <div id="recommendations-list" class="recommendations-list"></div>
     </div>
 
     <!-- Форма добавления -->
     <form id="add-form" class="add-form">
-      <input type="text" id="item-input" placeholder="Что купить? (например, молоко)" autocomplete="off">
+      <input type="text" id="item-input" placeholder="Что нужно купить?" autocomplete="off">
       <button type="submit">Добавить</button>
     </form>
 
-    <!-- Текущий список -->
+    <div class="list-heading"><h2>Список покупок</h2><span id="remaining"></span></div>
     <ul id="shopping-list" class="list"></ul>
-    <p id="empty-message" class="empty">Список пока пуст. Самое время что-нибудь добавить! 👆</p>
+    <p id="empty-message" class="empty"><span class="empty-icon">🛍️</span>Список пока пуст.<br>Добавьте что-нибудь вкусное!</p>
 
     <!-- Кнопка завершения -->
-    <button id="finish-btn" class="finish-btn hidden">✅ Завершить покупки</button>
-    </section>
+    <button id="finish-btn" class="finish-btn hidden">✓ Завершить покупки</button>
+    <footer>✳ &nbsp; Маленькие покупки. Большие планы.</footer></section>
   </div>
 <script type="module" src="app.js"></script>
 </body>

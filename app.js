@@ -14,7 +14,7 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, {localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})});
 let items = [], history = [], uid, ready = false, unsub = [];
 const login = document.getElementById('login'), content = document.getElementById('content'), status = document.getElementById('status');
-const say = s => status.textContent = s;
+const say = s => { status.textContent = s; status.dataset.state = s === 'Список синхронизирован' ? 'online' : /Ошибка|Не удалось/.test(s) ? 'error' : 'waiting'; };
 const report = e => { console.error(e); say('Ошибка сохранения или доступа: ' + e.code); };
 const col = name => collection(db, 'users', uid, name);
 const itemDoc = id => doc(col('items'), id);
@@ -26,7 +26,25 @@ const finishBtn = document.getElementById('finish-btn');
 const recBox = document.getElementById('recommendations-box');
 const recList = document.getElementById('recommendations-list');
 
+function productIcon(name) {
+  const n=name.toLowerCase();
+  const groups=[[/молок|кефир|сливк/,'🥛'],[/хлеб|батон|булк/,'🍞'],[/яйц/,'🥚'],[/сыр/,'🧀'],[/яблок/,'🍎'],[/банан/,'🍌'],[/авокад/,'🥑'],[/клубник|ягод/,'🍓'],[/томат|помидор/,'🍅'],[/огур/,'🥒'],[/карто/,'🥔'],[/морков/,'🥕'],[/куриц|мяс|фарш/,'🥩'],[/рыб|лосос/,'🐟'],[/кофе|чай/,'☕'],[/вод|сок/,'🧃'],[/шоколад|конфет/,'🍫'],[/макарон/,'🍝'],[/мыл|шампун/,'🧴']];
+  return groups.find(([r])=>r.test(n))?.[1] || '🛍️';
+}
+function celebrate(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const layer=document.createElement('div');layer.className='confetti';layer.setAttribute('aria-hidden','true');
+  for(let i=0;i<36;i++){const bit=document.createElement('i');bit.style.cssText=`--x:${Math.random()*100}vw;--d:${Math.random()*.6}s;--r:${Math.random()*720}deg;--c:${['#c5f76b','#fff','#77cdb0','#e8b76b'][i%4]}`;layer.append(bit);}
+  document.body.append(layer);setTimeout(()=>layer.remove(),2300);
+}
 function render() {
+  const bought=items.filter(i=>i.bought).length, pct=items.length?Math.round(bought/items.length*100):0;
+  document.getElementById('progress-count').textContent=`${bought} из ${items.length}`;
+  document.getElementById('progress-percent').textContent=pct+'%';
+  document.getElementById('progress-ring').style.setProperty('--progress',pct+'%');
+  document.getElementById('progress-bar').style.width=pct+'%';
+  document.getElementById('remaining').textContent=`Осталось: ${items.length-bought}`;
+
   listEl.innerHTML = '';
 
   // Показываем/скрываем кнопку завершения и текст "пусто"
@@ -45,6 +63,7 @@ function render() {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = item.bought;
+    checkbox.setAttribute('aria-label', 'Отметить: '+item.name);
     checkbox.addEventListener('change', () => toggleBought(item.id));
 
     const span = document.createElement('span');
@@ -57,8 +76,10 @@ function render() {
     delBtn.title = 'Удалить';
     delBtn.addEventListener('click', () => deleteItem(item.id));
 
-    li.appendChild(checkbox);
-    li.appendChild(span);
+    const icon=document.createElement('span');icon.className='product-icon';icon.textContent=productIcon(item.name);icon.setAttribute('aria-hidden','true');
+    const details=document.createElement('div');details.className='item-details';details.append(span);
+    const note=document.createElement('small');note.textContent=item.bought?'В корзине':'Нужно купить';details.append(note);
+    li.append(icon,details,checkbox);
     li.appendChild(delBtn);
     listEl.appendChild(li);
   });
@@ -90,7 +111,8 @@ function updateRecommendations() {
     recBox.classList.remove('hidden');
     
     top.forEach(item => {
-      const chip = document.createElement('div');
+      const chip = document.createElement('button');
+      chip.type='button';
       chip.className = 'rec-chip';
       chip.textContent = item.name.charAt(0).toUpperCase() + item.name.slice(1);
       
@@ -125,7 +147,7 @@ function finishShopping() {
   const batch = writeBatch(db);
   batch.set(doc(col('history')), {date:new Date().toISOString(), items:items.map(({id,name,bought})=>({id,name,bought}))});
   items.forEach(i=>batch.delete(itemDoc(i.id)));
-  batch.commit().catch(report);
+  batch.commit().then(celebrate).catch(report);
 }
 form.addEventListener('submit', e=>{e.preventDefault(); addItem(input.value); input.value=''; input.focus();});
 finishBtn.addEventListener('click', finishShopping);

@@ -1,1 +1,8 @@
-{"name":"Список покупок","short_name":"Покупки","start_url":"./","display":"standalone","background_color":"#ffffff","theme_color":"#764ba2"}
+{
+  "name": "Список покупок",
+  "short_name": "Покупки",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#111510",
+  "theme_color": "#111510"
+}
