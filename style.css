@@ -1,0 +1,237 @@
+/* Базовые настройки */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  /* Красивый градиентный фон */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  color: #333;
+}
+
+/* Сама карточка приложения */
+.app {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  margin-top: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #333;
+  font-weight: 800;
+}
+
+/* Форма добавления */
+.add-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+#item-input {
+  flex: 1;
+  padding: 14px 18px;
+  border: 2px solid #e1e5ee;
+  border-radius: 12px;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+#item-input:focus {
+  border-color: #764ba2;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.1);
+}
+
+.add-form button {
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+}
+
+.add-form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+}
+
+.add-form button:active {
+  transform: translateY(1px);
+}
+
+/* Список товаров */
+.list {
+  list-style: none;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: #f8f9fa;
+  border: 1px solid #edf2f7;
+  transition: all 0.2s ease;
+  animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.list-item:hover {
+  background: #f1f3f8;
+  border-color: #d1d9e6;
+}
+
+/* Стилизация чекбокса */
+.list-item input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  accent-color: #764ba2; /* Красит галочку в фиолетовый */
+  flex-shrink: 0;
+}
+
+.list-item .item-text {
+  flex: 1;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  color: #2d3748;
+}
+
+/* Зачеркивание при покупке */
+.list-item.bought {
+  background: #edf2f7;
+  opacity: 0.7;
+}
+
+.list-item.bought .item-text {
+  text-decoration: line-through;
+  color: #a0aec0;
+}
+
+/* Кнопка удаления (крестик) */
+.delete-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: 20px;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.delete-btn:hover {
+  color: #e53e3e;
+  background: #fed7d7;
+}
+
+/* Блок рекомендаций */
+.recommendations-box {
+  margin-bottom: 25px;
+  padding: 15px;
+  background: #fffaf0;
+  border-radius: 16px;
+  border: 1px solid #feebc8;
+}
+
+.recommendations-box h3 {
+  font-size: 15px;
+  color: #b7791f;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rec-chip {
+  background: #ffffff;
+  border: 1px solid #f6ad55;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #dd6b20;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.rec-chip:hover {
+  background: #f6ad55;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* Кнопка завершения покупок */
+.finish-btn {
+  width: 100%;
+  padding: 16px;
+  margin-top: 15px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+.finish-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+}
+
+.finish-btn:active {
+  transform: translateY(1px);
+}
+
+/* Вспомогательные классы */
+.empty {
+  text-align: center;
+  color: #a0aec0;
+  padding: 20px 0;
+  font-size: 15px;
+}
+
+.hidden {
+  display: none !important;
+}

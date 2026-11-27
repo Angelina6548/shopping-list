@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой список покупок</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <h1>🛒 Список покупок</h1>
+
+    <!-- Блок рекомендаций -->
+    <div id="recommendations-box" class="recommendations-box hidden">
+      <h3>💡 Вам может понадобиться:</h3>
+      <div id="recommendations-list" class="recommendations-list"></div>
+    </div>
+
+    <!-- Форма добавления -->
+    <form id="add-form" class="add-form">
+      <input type="text" id="item-input" placeholder="Что купить? (например, молоко)" autocomplete="off">
+      <button type="submit">Добавить</button>
+    </form>
+
+    <!-- Текущий список -->
+    <ul id="shopping-list" class="list"></ul>
+    <p id="empty-message" class="empty">Список пока пуст. Самое время что-нибудь добавить! 👆</p>
+
+    <!-- Кнопка завершения -->
+    <button id="finish-btn" class="finish-btn hidden">✅ Завершить покупки</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
