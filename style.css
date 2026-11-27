@@ -235,3 +235,4 @@ h1 {
 .hidden {
   display: none !important;
 }
+.login-form {display:grid;gap:12px;margin-bottom:15px;} .login-form input,.login-form button {padding:12px;border:1px solid #ddd;border-radius:12px;font-size:16px;} .login-form button {background:#764ba2;color:white;} #status {font-size:13px;color:#666;text-align:center;margin:12px 0;} #item-input {min-width:0;} @media(max-width:420px){.app{padding:16px;} .add-form button{padding:10px;}}

@@ -5,9 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Мой список покупок</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
   <div class="app">
+    <form id="login" class="login-form">
+      <h2>Вход в общий список</h2>
+      <input id="email" type="email" placeholder="Электронная почта" autocomplete="username" required>
+      <input id="password" type="password" placeholder="Пароль" autocomplete="current-password" required>
+      <button type="submit">Войти</button>
+    </form>
+    <p id="status" role="status">Подключение…</p>
+    <section id="content" class="hidden">
     <h1>🛒 Список покупок</h1>
 
     <!-- Блок рекомендаций -->
@@ -28,8 +38,8 @@
 
     <!-- Кнопка завершения -->
     <button id="finish-btn" class="finish-btn hidden">✅ Завершить покупки</button>
+    </section>
   </div>
-
-  <script src="app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

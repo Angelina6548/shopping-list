@@ -1,12 +1,23 @@
-// Ключи для хранилища
-const CURRENT_KEY = 'shopping_list_current_v1';
-const HISTORY_KEY = 'shopping_list_history_v1';
-
-// Загружаем данные
-let items = loadCurrent();
-let history = loadHistory();
-
-// Элементы страницы
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js';
+import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js';
+const firebaseConfig = {
+    apiKey: "AIzaSyDvchEAM9O5AtMzKmmmBO3ty_MKNtJA6Oc",
+    authDomain: "shopping-list-4ce24.firebaseapp.com",
+    projectId: "shopping-list-4ce24",
+    storageBucket: "shopping-list-4ce24.firebasestorage.app",
+    messagingSenderId: "601763375312",
+    appId: "1:601763375312:web:e6e08fe6d0a920885a16d5"
+  };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, {localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})});
+let items = [], history = [], uid, ready = false, unsub = [];
+const login = document.getElementById('login'), content = document.getElementById('content'), status = document.getElementById('status');
+const say = s => status.textContent = s;
+const report = e => { console.error(e); say('Ошибка сохранения или доступа: ' + e.code); };
+const col = name => collection(db, 'users', uid, name);
+const itemDoc = id => doc(col('items'), id);
 const form = document.getElementById('add-form');
 const input = document.getElementById('item-input');
 const listEl = document.getElementById('shopping-list');
@@ -15,26 +26,6 @@ const finishBtn = document.getElementById('finish-btn');
 const recBox = document.getElementById('recommendations-box');
 const recList = document.getElementById('recommendations-list');
 
-// ---------- Загрузка / Сохранение ----------
-function loadCurrent() {
-  const raw = localStorage.getItem(CURRENT_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-function saveCurrent() {
-  localStorage.setItem(CURRENT_KEY, JSON.stringify(items));
-}
-
-function loadHistory() {
-  const raw = localStorage.getItem(HISTORY_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-function saveHistory() {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-}
-
-// ---------- Логика текущего списка ----------
 function render() {
   listEl.innerHTML = '';
 
@@ -73,62 +64,13 @@ function render() {
   });
 }
 
-function addItem(name) {
-  const trimmed = name.trim();
-  if (!trimmed) return;
-
-  items.push({
-    id: Date.now().toString(),
-    name: trimmed,
-    bought: false
-  });
-
-  saveCurrent();
-  render();
-}
-
-function toggleBought(id) {
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-  item.bought = !item.bought;
-  saveCurrent();
-  render();
-}
-
-function deleteItem(id) {
-  items = items.filter(i => i.id !== id);
-  saveCurrent();
-  render();
-}
-
-// ---------- Завершение списка и История ----------
-function finishShopping() {
-  if (items.length === 0) return;
-
-  // Сохраняем в историю
-  history.push({
-    date: new Date().toISOString(),
-    items: items
-  });
-  
-  // Очищаем текущий список
-  items = [];
-  
-  saveHistory();
-  saveCurrent();
-  
-  render();
-  updateRecommendations();
-}
-
-// ---------- Анализ и Рекомендации ----------
 function updateRecommendations() {
   if (history.length === 0) {
     recBox.classList.add('hidden');
     return;
   }
 
-  const counts = {};
+  const counts = Object.create(null);
   history.forEach(list => {
     list.items.forEach(item => {
       const name = item.name.toLowerCase();
@@ -166,16 +108,42 @@ function updateRecommendations() {
   }
 }
 
-// ---------- События ----------
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  addItem(input.value);
-  input.value = '';
-  input.focus();
-});
 
+function addItem(name) {
+  name = name.trim(); if (!ready || !name) return;
+  const ref = doc(col('items'));
+  setDoc(ref, {name, bought:false, createdAt:Date.now()}).catch(report);
+}
+function toggleBought(id) {
+  const item = items.find(i => i.id === id);
+  if (ready && item) updateDoc(itemDoc(id), {bought:!item.bought}).catch(report);
+}
+function deleteItem(id) { if (ready) deleteDoc(itemDoc(id)).catch(report); }
+function finishShopping() {
+  if (!ready || !items.length) return;
+  if (items.length > 499) { say('Слишком много товаров для завершения за один раз.'); return; }
+  const batch = writeBatch(db);
+  batch.set(doc(col('history')), {date:new Date().toISOString(), items:items.map(({id,name,bought})=>({id,name,bought}))});
+  items.forEach(i=>batch.delete(itemDoc(i.id)));
+  batch.commit().catch(report);
+}
+form.addEventListener('submit', e=>{e.preventDefault(); addItem(input.value); input.value=''; input.focus();});
 finishBtn.addEventListener('click', finishShopping);
-
-// ---------- Первый запуск ----------
-render();
-updateRecommendations();
+login.addEventListener('submit', async e=>{
+  e.preventDefault(); const button=login.querySelector('button'); button.disabled=true;
+  try { await setPersistence(auth,browserLocalPersistence); await signInWithEmailAndPassword(auth,document.getElementById('email').value,document.getElementById('password').value); login.reset(); }
+  catch(e){say('Не удалось войти: проверьте почту, пароль и интернет.'); console.error(e);}
+  finally {button.disabled=false;}
+});
+onAuthStateChanged(auth,user=>{
+  unsub.forEach(fn=>fn()); unsub=[]; ready=false; items=[]; history=[];
+  login.classList.toggle('hidden',!!user); content.classList.toggle('hidden',!user);
+  if(!user){say('Войдите один раз на этом устройстве.');return;}
+  uid=user.uid; say('Загрузка списка…'); render(); updateRecommendations();
+  unsub.push(onSnapshot(col('items'),{includeMetadataChanges:true},snap=>{
+    items=snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>a.createdAt-b.createdAt); ready=true;
+    say(snap.metadata.hasPendingWrites?'Ожидает синхронизации…':snap.metadata.fromCache?'Локальная копия · ожидаем связь':'Список синхронизирован'); render(); updateRecommendations();
+  },report));
+  unsub.push(onSnapshot(col('history'),snap=>{history=snap.docs.map(d=>d.data());updateRecommendations();},report));
+});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
